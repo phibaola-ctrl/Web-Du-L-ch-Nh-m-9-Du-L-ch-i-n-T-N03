@@ -209,7 +209,7 @@ export default function VideoSummaryModal({ summary, onClose }: VideoSummaryModa
             </button>
           </div>
           <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">
-            Phi AI Travel Experience
+            Nhóm 9 N03 AI Travel Experience
           </div>
         </div>
       </motion.div>

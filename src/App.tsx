@@ -164,7 +164,7 @@ const Header = ({
         <Compass className="w-5 h-5 text-white" />
       </div>
       <span className="text-xl font-bold tracking-tight text-slate-900 uppercase">
-        Phi
+        Nhóm 9 N03
       </span>
     </div>
     <div className="flex items-center gap-6">
@@ -914,8 +914,8 @@ export default function App() {
             ${daySections}
 
             <div class="footer">
-              <p>Kế hoạch được tạo bởi Phi AI - Trình kiến tạo hành trình du lịch tối ưu</p>
-              <p>Donate: MB Bank 0357829602</p>
+              <p>Kế hoạch được tạo bởi Nhóm 9 N03 AI - Trình kiến tạo hành trình du lịch tối ưu</p>
+              <p>Cung cấp bởi Nhóm 9 N03</p>
             </div>
           </div>
         </body>
@@ -1171,7 +1171,7 @@ export default function App() {
                     <HelpCircle className="w-7 h-7 text-indigo-600" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black text-slate-900">Hướng dẫn sử dụng Phi</h2>
+                    <h2 className="text-2xl font-black text-slate-900">Hướng dẫn sử dụng Nhóm 9 N03</h2>
                     <p className="text-slate-500 font-bold text-sm">Tối ưu hóa hành trình của bạn với AI</p>
                   </div>
                 </div>
@@ -1219,7 +1219,7 @@ export default function App() {
                 <div className="bg-indigo-600 rounded-2xl p-6 text-white">
                   <p className="text-xs font-bold uppercase tracking-widest opacity-60 mb-2">Lời khuyên từ chuyên gia</p>
                   <p className="font-bold leading-relaxed italic">
-                    "Hãy thử kết hợp 'Phượt' với ngân sách vừa phải và các điểm đến ít người biết để có một hành trình Phi độc bản và đầy bất ngờ!"
+                    "Hãy thử kết hợp 'Phượt' với ngân sách vừa phải và các điểm đến ít người biết để có một hành trình Nhóm 9 N03 độc bản và đầy bất ngờ!"
                   </p>
                 </div>
               </div>
@@ -1257,7 +1257,7 @@ export default function App() {
                   <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <Compass className="w-7 h-7 text-white" />
                   </div>
-                  <h2 className="text-3xl font-black text-slate-900">Tham gia Phi</h2>
+                  <h2 className="text-3xl font-black text-slate-900">Tham gia Nhóm 9 N03</h2>
                   <p className="text-slate-500 font-semibold">Tối ưu hóa hành trình, lưu giữ kỷ niệm.</p>
                 </div>
 
@@ -2171,9 +2171,9 @@ export default function App() {
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
               <Compass className="w-5 h-5 text-white" />
             </div>
-            <span className="text-sm font-bold tracking-tight text-slate-900">Phi</span>
+            <span className="text-sm font-bold tracking-tight text-slate-900">Nhóm 9 N03</span>
           </div>
-          <p className="text-[10px] font-bold text-slate-400">Donate cho người tạo trang web tại Mb bank: 0357829602</p>
+          <p className="text-[10px] font-bold text-slate-400">Cung cấp bởi Nhóm 9 N03</p>
           <div className="flex gap-6 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
             <button className="hover:text-indigo-600">Tích hợp</button>
             <button className="hover:text-indigo-600">Bảo mật</button>
