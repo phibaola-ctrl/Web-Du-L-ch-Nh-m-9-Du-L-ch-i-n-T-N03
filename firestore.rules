@@ -1,0 +1,95 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    match /test/connection {
+      allow get: if true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // USER RULES
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.uid == request.auth.uid &&
+             data.email is string && data.email.size() <= 256;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().createdAt == request.time;
+      allow update: if isOwner(userId) && isValidUser(incoming()) && 
+                    incoming().updatedAt == request.time &&
+                    incoming().createdAt == existing().createdAt;
+      allow delete: if false;
+    }
+
+    // PLAN RULES
+    function isValidPlan(data) {
+      return data.keys().hasAll(['userId', 'plan', 'type', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.type in ['saved', 'history'] &&
+             data.plan is map;
+    }
+
+    match /plans/{planId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidPlan(incoming()) && 
+                    incoming().userId == request.auth.uid &&
+                    incoming().createdAt == request.time;
+      allow update: if isSignedIn() && isValidPlan(incoming()) &&
+                    existing().userId == request.auth.uid &&
+                    incoming().userId == request.auth.uid &&
+                    incoming().updatedAt == request.time;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // BOOKING RULES
+    function isValidBooking(data) {
+      return data.keys().hasAll(['userId', 'tourName', 'startDate', 'travelers', 'totalPrice', 'status']) &&
+             data.userId == request.auth.uid &&
+             data.tourName is string && data.tourName.size() <= 256 &&
+             data.startDate is string &&
+             data.travelers is number && data.travelers > 0 &&
+             data.totalPrice is number &&
+             data.status in ['pending', 'confirmed', 'cancelled'];
+    }
+
+    match /bookings/{bookingId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidBooking(incoming()) && 
+                    incoming().createdAt == request.time;
+      allow update: if isSignedIn() && isOwner(existing().userId) && 
+                    incoming().userId == request.auth.uid &&
+                    incoming().tourName == existing().tourName &&
+                    incoming().totalPrice == existing().totalPrice;
+      allow delete: if isSignedIn() && isOwner(existing().userId);
+    }
+  }
+}

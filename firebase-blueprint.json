@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account information and travel preferences",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "TravelPlan": {
+      "title": "Travel Plan",
+      "description": "A saved or history travel itinerary for a user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["saved", "history"] },
+        "plan": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "plan", "type"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "A tour booking request",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "planId": { "type": "string" },
+        "tourName": { "type": "string" },
+        "startDate": { "type": "string", "format": "date" },
+        "travelers": { "type": "number" },
+        "totalPrice": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled"] },
+        "contactEmail": { "type": "string" },
+        "contactPhone": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "tourName", "startDate", "travelers", "totalPrice", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Public and private user profile data"
+    },
+    "/plans/{planId}": {
+      "schema": "TravelPlan",
+      "description": "User-specific travel plans"
+    },
+    "/bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "Tour booking requests"
+    }
+  }
+}
