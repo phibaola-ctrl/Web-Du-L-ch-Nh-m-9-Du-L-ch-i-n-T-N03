@@ -48,11 +48,12 @@ import {
   Pie,
   Legend
 } from 'recharts';
-import { generateTravelPlan, generateVideoSummary, generateSuggestedActivities } from './services/geminiService';
+import { generateTravelPlan, generateVideoSummary, generateSuggestedActivities, generateNearbyActivities, generateActivityReviews } from './services/geminiService';
 import { Activity, TravelPlan, UserPreferences, MapPoint, VideoSummary, UserReview, SuggestedActivity } from './types';
 import { useDebounce } from './hooks/useDebounce';
 import PanoramaViewer from './components/PanoramaViewer';
 import VideoSummaryModal from './components/VideoSummaryModal';
+import ScrollingBackground from './components/ScrollingBackground';
 import { auth, googleProvider, db } from './lib/firebase';
 import { 
   signInWithPopup, 
@@ -157,7 +158,7 @@ const Header = ({
   onShowHelp: () => void,
   onBook: () => void
 }) => (
-  <header className="fixed top-0 left-0 right-0 z-50 h-16 px-8 bg-white border-b border-slate-200 flex items-center justify-between shadow-sm">
+  <header className="fixed top-0 left-0 right-0 z-50 h-16 px-8 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between shadow-sm">
     <div className="flex items-center gap-3">
       <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
         <Compass className="w-5 h-5 text-white" />
@@ -518,6 +519,12 @@ export default function App() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isBookingLoading, setIsBookingLoading] = useState(false);
+  const [showIntegrationModal, setShowIntegrationModal] = useState(false);
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
+  const [nearbySuggestions, setNearbySuggestions] = useState<Record<string, SuggestedActivity[]>>({});
+  const [loadingNearby, setLoadingNearby] = useState(false);
+  const [activityReviews, setActivityReviews] = useState<Record<string, UserReview[]>>({});
+  const [loadingReviews, setLoadingReviews] = useState(false);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -570,6 +577,46 @@ export default function App() {
   useEffect(() => {
     setPrefs(prev => ({ ...prev, startLocation: debouncedStartLocation }));
   }, [debouncedStartLocation]);
+
+  useEffect(() => {
+    if (selectedDetail && !nearbySuggestions[selectedDetail.activity.activity]) {
+      const fetchNearby = async () => {
+        setLoadingNearby(true);
+        try {
+          const suggestions = await generateNearbyActivities(selectedDetail.activity, prefs);
+          setNearbySuggestions(prev => ({
+            ...prev,
+            [selectedDetail.activity.activity]: suggestions
+          }));
+        } catch (error) {
+          console.error("Error fetching nearby activities:", error);
+        } finally {
+          setLoadingNearby(false);
+        }
+      };
+      fetchNearby();
+    }
+  }, [selectedDetail, prefs]);
+
+  useEffect(() => {
+    if (selectedDetail && !activityReviews[selectedDetail.activity.activity]) {
+      const fetchReviews = async () => {
+        setLoadingReviews(true);
+        try {
+          const reviews = await generateActivityReviews(selectedDetail.activity.activity, selectedDetail.activity.location);
+          setActivityReviews(prev => ({
+            ...prev,
+            [selectedDetail.activity.activity]: reviews
+          }));
+        } catch (error) {
+          console.error("Error fetching reviews:", error);
+        } finally {
+          setLoadingReviews(false);
+        }
+      };
+      fetchReviews();
+    }
+  }, [selectedDetail]);
 
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -1134,7 +1181,8 @@ export default function App() {
   }, [historyPlans, historyFilterMonth, historyFilterYear, historyFilterLocation]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans relative">
+      <ScrollingBackground />
       <Header 
         onExport={exportPlan} 
         hasPlan={!!plan} 
@@ -1228,6 +1276,120 @@ export default function App() {
                 className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 transition-colors"
               >
                 <X className="w-6 h-6" />
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Integration Modal */}
+      <AnimatePresence>
+        {showIntegrationModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setShowIntegrationModal(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-lg bg-white rounded-[40px] overflow-hidden shadow-2xl p-10 space-y-8"
+            >
+              <div className="flex items-center gap-4 border-b border-slate-100 pb-6">
+                <div className="w-14 h-14 bg-indigo-600 rounded-3xl flex items-center justify-center transform -rotate-6 shadow-xl shadow-indigo-600/20">
+                  <Zap className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900">Tính Năng Tích Hợp</h2>
+                  <p className="text-indigo-600 font-black text-[10px] uppercase tracking-[0.2em]">Hệ sinh thái thông minh</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {[
+                  { icon: Sparkles, title: "Google Gemini 1.5", desc: "Sử dụng mô hình AI tiên tiến nhất để phân tích và lập kế hoạch du lịch cá nhân hóa." },
+                  { icon: MapIcon, title: "Google Maps Platform", desc: "Tích hợp bản đồ trực quan, gợi ý địa điểm và tính toán lộ trình tối ưu." },
+                  { icon: Zap, title: "Firebase Real-time", desc: "Đồng bộ hóa dữ liệu tức thì giữa các thiết bị và lưu trữ lịch sử hành trình." },
+                  { icon: Camera, title: "Unsplash API", desc: "Tự động tìm kiếm và hiển thị hình ảnh chất lượng cao cho từng điểm đến." }
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-5 group">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-50 transition-colors">
+                      <item.icon className="w-6 h-6 text-slate-400 group-hover:text-indigo-600 transition-colors" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="font-black text-slate-900">{item.title}</h4>
+                      <p className="text-xs text-slate-500 font-medium leading-relaxed">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button 
+                onClick={() => setShowIntegrationModal(false)}
+                className="w-full py-4 bg-slate-900 text-white font-black text-xs uppercase tracking-[0.3em] rounded-2xl hover:bg-slate-800 transition-all shadow-xl active:scale-95"
+              >
+                Đóng
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Security Modal */}
+      <AnimatePresence>
+        {showSecurityModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setShowSecurityModal(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-lg bg-white rounded-[40px] overflow-hidden shadow-2xl p-10 space-y-8"
+            >
+              <div className="flex items-center gap-4 border-b border-slate-100 pb-6">
+                <div className="w-14 h-14 bg-emerald-600 rounded-3xl flex items-center justify-center transform rotate-6 shadow-xl shadow-emerald-600/20">
+                  <ShieldCheck className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900">Bảo Mật & Riêng Tư</h2>
+                  <p className="text-emerald-600 font-black text-[10px] uppercase tracking-[0.2em]">Bảo vệ dữ liệu tuyệt đối</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {[
+                  { icon: ShieldCheck, title: "Firebase Auth", desc: "Đăng nhập an toàn qua Google hoặc Email với công nghệ xác thực hàng đầu của Google." },
+                  { icon: Zap, title: "Mã hóa SSL/TLS", desc: "Toàn bộ dữ liệu truyền tải đều được mã hóa theo tiêu chuẩn quân đội, đảm bảo không bị rò rỉ." },
+                  { icon: Sparkles, title: "Firestore Rules", desc: "Quy tắc bảo mật nghiêm ngặt tại phía máy chủ, chỉ bạn mới có quyền tiếp cận dữ liệu của mình." },
+                  { icon: MapPin, title: "Riêng tư vị trí", desc: "Chúng tôi không lưu trữ vị trí thực tế của bạn, chỉ sử dụng để gợi ý địa điểm du lịch." }
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-5 group">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-50 transition-colors">
+                      <item.icon className="w-6 h-6 text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="font-black text-slate-900">{item.title}</h4>
+                      <p className="text-xs text-slate-500 font-medium leading-relaxed">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button 
+                onClick={() => setShowSecurityModal(false)}
+                className="w-full py-4 bg-slate-900 text-white font-black text-xs uppercase tracking-[0.3em] rounded-2xl hover:bg-slate-800 transition-all shadow-xl active:scale-95"
+              >
+                Hoàn tất
               </button>
             </motion.div>
           </div>
@@ -1429,7 +1591,7 @@ export default function App() {
             </p>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-12 shadow-xl shadow-slate-200/50 space-y-8">
+          <div className="bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-8 md:p-12 shadow-2xl shadow-slate-200/50 space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               <InputField label="Điểm Khởi Hành" icon={MapPin}>
                 <div className="relative">
@@ -1654,7 +1816,7 @@ export default function App() {
             <div className="max-w-[1440px] mx-auto flex flex-col lg:flex-row min-h-screen">
               
               {/* Left Sidebar: Context & Personalization */}
-              <aside className="w-full lg:w-80 border-r border-slate-200 bg-white p-8 flex flex-col gap-10 shrink-0">
+              <aside className="w-full lg:w-80 border-r border-slate-200 bg-white/40 backdrop-blur-md p-8 flex flex-col gap-10 shrink-0">
                 <section>
                   <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Thông Số Chuyến Đi</h3>
                   <div className="space-y-4">
@@ -1820,7 +1982,7 @@ export default function App() {
               </aside>
 
               {/* Middle: Itinerary */}
-              <main className="flex-grow p-8 md:p-12 space-y-12 bg-white">
+              <main className="flex-grow p-8 md:p-12 space-y-12 bg-white/20 backdrop-blur-sm">
                 <div className="space-y-6 max-w-4xl">
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                       <div className="space-y-3 flex-1">
@@ -2054,7 +2216,7 @@ export default function App() {
               </main>
 
                 {/* Right Sidebar: Optimized Data */}
-                <aside className="w-full lg:w-80 bg-slate-50 p-8 flex flex-col gap-8 shrink-0 border-l border-slate-200 overflow-y-auto">
+                <aside className="w-full lg:w-80 bg-slate-50/60 backdrop-blur-md p-8 flex flex-col gap-8 shrink-0 border-l border-slate-200 overflow-y-auto">
                   <section className="space-y-4">
                     <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Chi Phí Theo Ngày</h3>
                     <BudgetChart data={chartData} />
@@ -2144,9 +2306,19 @@ export default function App() {
             <span className="text-sm font-bold tracking-tight text-slate-900">Nhóm 9 N03</span>
           </div>
           <p className="text-[10px] font-bold text-slate-400">Cung cấp bởi Nhóm 9 N03</p>
-          <div className="flex gap-6 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-            <button className="hover:text-indigo-600">Tích hợp</button>
-            <button className="hover:text-indigo-600">Bảo mật</button>
+          <div className="flex gap-6 text-[11px] font-black text-slate-800 uppercase tracking-widest">
+            <button 
+              onClick={() => setShowIntegrationModal(true)}
+              className="hover:text-indigo-600 transition-colors"
+            >
+              Tích hợp
+            </button>
+            <button 
+              onClick={() => setShowSecurityModal(true)}
+              className="hover:text-indigo-600 transition-colors"
+            >
+              Bảo mật
+            </button>
           </div>
         </div>
       </footer>
@@ -2393,6 +2565,136 @@ export default function App() {
                     </div>
                   </div>
                 )}
+
+                {/* User Reviews Section */}
+                <div className="space-y-6 pt-4 border-t border-slate-100" id="activity-reviews-section">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                      <MessageSquare className="w-5 h-5 text-indigo-500" />
+                      Đánh giá từ cộng đồng
+                    </h3>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* User's own review if exists */}
+                    {selectedDetail && plan && plan.itinerary[selectedDetail.dayIndex][selectedDetail.timeSlot].userReview && (
+                      <div className="p-5 bg-indigo-50/50 border border-indigo-100 rounded-[28px] relative group overflow-hidden">
+                        <div className="absolute top-0 right-0 p-3">
+                          <span className="px-2 py-1 bg-indigo-600 text-white text-[8px] font-black uppercase rounded-lg shadow-lg">Của bạn</span>
+                        </div>
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-black text-xs">
+                            {user?.displayName?.charAt(0) || 'U'}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1">
+                              {[...Array(5)].map((_, i) => (
+                                <Star 
+                                  key={i} 
+                                  className={`w-3 h-3 ${i < (plan.itinerary[selectedDetail.dayIndex][selectedDetail.timeSlot].userReview?.rating || 0) ? 'fill-orange-400 text-orange-400' : 'text-slate-200'}`} 
+                                />
+                              ))}
+                            </div>
+                            <p className="text-[10px] font-bold text-slate-400">Vừa xong</p>
+                          </div>
+                        </div>
+                        <p className="text-sm text-slate-700 font-medium italic">"{plan.itinerary[selectedDetail.dayIndex][selectedDetail.timeSlot].userReview?.comment}"</p>
+                      </div>
+                    )}
+
+                    {/* AI Generated / Community Reviews */}
+                    {loadingReviews ? (
+                      [1, 2].map(i => (
+                        <div key={i} className="h-24 bg-slate-50 animate-pulse rounded-[28px]" />
+                      ))
+                    ) : activityReviews[selectedDetail.activity.activity]?.length > 0 ? (
+                      activityReviews[selectedDetail.activity.activity].map((rev, idx) => (
+                        <div key={idx} className="p-5 bg-white border border-slate-100 rounded-[28px] shadow-sm hover:shadow-md transition-all">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-black text-xs">
+                              {['M', 'K', 'A', 'P', 'S'][idx % 5]}
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-1">
+                                  {[...Array(5)].map((_, i) => (
+                                    <Star 
+                                      key={i} 
+                                      className={`w-3 h-3 ${i < rev.rating ? 'fill-orange-400 text-orange-400' : 'text-slate-200'}`} 
+                                    />
+                                  ))}
+                                </div>
+                                <p className="text-[10px] font-bold text-slate-400">
+                                  {new Date(rev.createdAt).toLocaleDateString('vi-VN')}
+                                </p>
+                            </div>
+                          </div>
+                          <p className="text-sm text-slate-600 leading-relaxed font-medium">"{rev.comment}"</p>
+                        </div>
+                      ))
+                    ) : (
+                      !plan.itinerary[selectedDetail.dayIndex][selectedDetail.timeSlot].userReview && (
+                        <div className="py-8 text-center bg-slate-50 border border-dashed border-slate-200 rounded-[28px]">
+                          <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                          <p className="text-xs text-slate-400 font-bold italic">Hãy là người đầu tiên để lại dấu ấn tại đây.</p>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+
+                {/* Nearby Suggestions Section */}
+                <div className="space-y-6 pt-4 border-t border-slate-100" id="nearby-suggestions-section">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-indigo-500" />
+                      Địa điểm lân cận & Tương tự
+                    </h3>
+                    {loadingNearby && <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {loadingNearby ? (
+                      [1, 2].map(i => (
+                        <div key={i} className="h-32 bg-slate-50 animate-pulse rounded-2xl border border-slate-100" />
+                      ))
+                    ) : nearbySuggestions[selectedDetail.activity.activity]?.length > 0 ? (
+                      nearbySuggestions[selectedDetail.activity.activity].map((suggest, idx) => (
+                        <div key={idx} className="p-5 bg-gradient-to-br from-indigo-50/30 to-white border border-indigo-100 rounded-[28px] space-y-3 hover:shadow-xl hover:shadow-indigo-500/5 transition-all group">
+                          <div className="flex items-center justify-between">
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${suggest.type === 'attraction' ? 'bg-indigo-100 text-indigo-700' : 'bg-orange-100 text-orange-700'}`}>
+                              {suggest.type === 'attraction' ? 'Tham quan' : 'Ăn uống'}
+                            </span>
+                            <div className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+                              <Compass className="w-4 h-4 text-indigo-400 group-hover:text-indigo-600 transition-colors" />
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <h4 className="font-black text-slate-900 text-sm">{suggest.name}</h4>
+                            <p className="text-[10px] text-slate-500 line-clamp-2 leading-relaxed">{suggest.description}</p>
+                          </div>
+                          <div className="pt-2 border-t border-indigo-50 flex items-center justify-between gap-4">
+                             <p className="text-[9px] text-indigo-600 font-bold italic line-clamp-1 flex-1">AI: "{suggest.reason}"</p>
+                             <a 
+                              href={`https://www.google.com/maps/dir/?api=1&destination=${suggest.lat},${suggest.lng}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="p-2 rounded-xl bg-slate-900 text-white hover:bg-indigo-600 transition-colors shadow-lg shadow-slate-900/10"
+                             >
+                                <ArrowRight className="w-3 h-3" />
+                             </a>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-full py-10 text-center space-y-3">
+                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto border-2 border-dashed border-slate-200">
+                          <Info className="w-6 h-6 text-slate-300" />
+                        </div>
+                        <p className="text-sm text-slate-400 font-bold italic">Không có gợi ý lân cận dựa trên phân tích.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 {/* Cost & Action */}
                 <div className="p-6 bg-slate-900 rounded-[24px] flex items-center justify-between gap-4">

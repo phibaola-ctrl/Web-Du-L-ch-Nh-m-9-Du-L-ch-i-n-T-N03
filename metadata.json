@@ -1,6 +1,6 @@
 {
   "name": "Nhóm 9 N03 - AI Luxury Travel Planner",
-  "description": "Ứng dụng lập kế hoạch du lịch cao cấp sử dụng AI, hỗ trợ gợi ý địa điểm thông minh theo thời gian thực và lộ trình bản đồ tối ưu.",
+  "description": "Ứng dụng lập kế hoạch du lịch cao cấp sử dụng AI, hỗ trợ gợi ý địa điểm thông minh và trải nghiệm hình ảnh sống động với hình nền chuyển động panoramically.",
   "requestFramePermissions": [
     "microphone"
   ]

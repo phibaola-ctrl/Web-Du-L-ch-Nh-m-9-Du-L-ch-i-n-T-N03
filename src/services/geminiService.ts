@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { TravelPlan, UserPreferences, VideoSummary, SuggestedActivity, DayItinerary } from "../types";
+import { TravelPlan, UserPreferences, VideoSummary, SuggestedActivity, DayItinerary, UserReview } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -306,6 +306,97 @@ export async function generateSuggestedActivities(
     } catch (e) {
       console.error("Error generating suggested activities:", e);
     }
+    return [];
+  }
+}
+
+export async function generateNearbyActivities(
+  activity: { activity: string, location: string, lat: number, lng: number, description: string },
+  prefs: UserPreferences
+): Promise<SuggestedActivity[]> {
+  const prompt = `
+    Người dùng đang xem chi tiết về hoạt động: "${activity.activity}" tại "${activity.location}".
+    Mô tả hoạt động: "${activity.description}"
+    Tọa độ: ${activity.lat}, ${activity.lng}
+    Sở thích người dùng: ${prefs.interests.join(", ")}
+    Tâm trạng: ${prefs.mood}
+
+    Hãy đề xuất thêm 3 địa điểm THAM QUAN (attraction) hoặc ĂN UỐNG (dining) tương tự hoặc nằm rất gần địa điểm này.
+    Yêu cầu:
+    1. Đề xuất phải bằng tiếng Việt.
+    2. Giải thích lý do (reason) tại sao gợi ý này phù hợp với hoạt động hiện tại và sở thích người dùng.
+    3. Cung cấp tọa độ lat/lng chính xác (gần ${activity.lat}, ${activity.lng}).
+    4. Cung cấp mô tả ngắn gọn cho mỗi địa điểm.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: SUGGESTIONS_SCHEMA as any,
+      },
+    });
+
+    if (!response.text) {
+      throw new Error("No response from Gemini");
+    }
+
+    const data = JSON.parse(response.text);
+    return data.suggestions as SuggestedActivity[];
+  } catch (error) {
+    console.error("Error generating nearby activities:", error);
+    return [];
+  }
+}
+
+export async function generateActivityReviews(
+  activity: string,
+  location: string
+): Promise<UserReview[]> {
+  const prompt = `
+    Tạo 3 đánh giá giả lập từ người dùng thực tế cho địa điểm: "${activity}" tại "${location}".
+    Mỗi đánh giá cần có:
+    1. rating (từ 4 đến 5)
+    2. comment (tiếng Việt, thể hiện sự sang trọng, hài lòng, chi tiết về trải nghiệm)
+    3. createdAt (ngày tháng năm ngẫu nhiên trong 6 tháng qua, định dạng ISO)
+
+    Trả về danh sách 3 đối tượng trong mảng "reviews".
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "object",
+          properties: {
+            reviews: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  rating: { type: "number" },
+                  comment: { type: "string" },
+                  createdAt: { type: "string" }
+                },
+                required: ["rating", "comment", "createdAt"]
+              }
+            }
+          },
+          required: ["reviews"]
+        } as any,
+      },
+    });
+
+    if (!response.text) return [];
+    const data = JSON.parse(response.text);
+    return data.reviews || [];
+  } catch (error) {
+    console.error("Error generating reviews:", error);
     return [];
   }
 }
