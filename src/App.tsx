@@ -32,7 +32,8 @@ import {
   Mic,
   MicOff,
   HelpCircle,
-  Users
+  Users,
+  MessageCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -1268,6 +1269,26 @@ export default function App() {
                   <p className="font-bold leading-relaxed italic">
                     "Hãy thử kết hợp 'Phượt' với ngân sách vừa phải và các điểm đến ít người biết để có một hành trình Nhóm 9 N03 độc bản và đầy bất ngờ!"
                   </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-[#0068ff] rounded-xl flex items-center justify-center shadow-lg">
+                      <MessageCircle className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cần hỗ trợ trực tiếp?</p>
+                      <p className="text-sm font-black text-slate-900">Zalo: 0987684159</p>
+                    </div>
+                  </div>
+                  <a 
+                    href="https://zalo.me/0987684159"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full sm:w-auto px-6 py-2 bg-[#0068ff] text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-600 transition-all text-center shadow-xl shadow-blue-500/10"
+                  >
+                    Nhắn tin ngay
+                  </a>
                 </div>
               </div>
 
@@ -2717,6 +2738,20 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
+      
+      {/* Zalo Contact Button */}
+      <a
+        href="https://zalo.me/0987684159"
+        target="_blank"
+        rel="noreferrer"
+        className="fixed bottom-6 right-6 z-[60] flex items-center justify-center w-14 h-14 bg-[#0068ff] text-white rounded-full shadow-2xl hover:scale-110 hover:rotate-6 active:scale-95 transition-all group"
+        title="Liên hệ Zalo: 0987684159"
+      >
+        <MessageCircle className="w-7 h-7" />
+        <span className="absolute right-full mr-3 px-4 py-2 bg-white text-[#0068ff] text-[10px] font-black uppercase tracking-widest rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 whitespace-nowrap pointer-events-none border border-blue-50">
+          Hỗ trợ Zalo: 0987684159
+        </span>
+      </a>
     </div>
   );
 }
